@@ -65,8 +65,8 @@ exports.createOrder = async (req, res) => {
           payment_method: "paypal",
         },
         redirect_urls: {
-          return_url: "http://139.59.92.185:2000/api/addOrders",
-          cancel_url: "http://139.59.92.185:2000/api/addOrders?cancel=true",
+          return_url: "http://167.99.4.205:2000/api/addOrders",
+          cancel_url: "http://167.99.4.205:2000/api/addOrders?cancel=true",
         },
         transactions: [
           {
