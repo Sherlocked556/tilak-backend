@@ -67,8 +67,8 @@ exports.adminMiddleware = (req, res, next) => {
 };
 
 exports.superAdminMiddleware = (req, res, next) => {
-  if (req.user.role !== "admin") {
-    return res.status(200).json({ message: "Super Admin access denied" });
+  if (req.user.role === "admin" || req.user.role === "super-admin") {
+    return next();
   }
-  next();
+  return res.status(400).json({ message: "Admin access denied" });
 };
