@@ -103,8 +103,8 @@ exports.createOrderPaypal = async (req, res) => {
         payment_method: "paypal",
       },
       redirect_urls: {
-        return_url: "http://localhost:2000/api/addOrder/paypal",
-        cancel_url: "http://localhost:2000/api/addOrder/cancel?method=paypal",
+        return_url: "https://api.tilakshringar.com/api/addOrder/paypal",
+        cancel_url: "https://api.tilakshringar.com/api/addOrder/cancel?method=paypal",
       },
       transactions: [
         {
