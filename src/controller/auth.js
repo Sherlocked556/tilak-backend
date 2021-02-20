@@ -2,15 +2,25 @@ const User = require("../models/user");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const shortid = require("shortid");
+require("dotenv").config();
 
-const generateJwtToken = (_id, role) => {
-  return jwt.sign({ _id, role }, "MERNSECRET", {
-    expiresIn: "1d",
+const generateAccessJwtToken = (_id, email, fullName, role) => {
+  return jwt.sign(
+    { _id, email, fullName, role },
+    process.env.JWT_ACCESS_TOKEN,
+    {
+      expiresIn: 60 * 10 * 10,
+    }
+  );
+};
+
+const generateRefreshJwtToken = (_id, role) => {
+  return jwt.sign({ _id, role }, process.env.JWT_REFRESH_TOKEN, {
+    expiresIn: "7d",
   });
 };
 
 exports.signup = (req, res) => {
-  //TODO add user verification email
   User.findOne({ email: req.body.email }).exec(async (error, user) => {
     if (user)
       return res.status(400).json({
@@ -35,11 +45,9 @@ exports.signup = (req, res) => {
       }
 
       if (user) {
-        const token = generateJwtToken(user._id, user.role);
-        const { _id, firstName, lastName, email, role, fullName } = user;
         return res.status(201).json({
-          token,
-          user: { _id, firstName, lastName, email, role, fullName },
+          success: true,
+          message: "User Registered",
         });
       }
     });
@@ -49,34 +57,132 @@ exports.signup = (req, res) => {
 exports.signin = (req, res) => {
   User.findOne({ email: req.body.email }).exec(async (error, user) => {
     if (error) return res.status(400).json({ error });
+    console.log(user);
+
     if (user) {
       const isPassword = await user.authenticate(req.body.password);
       if (isPassword && user.role === "user") {
-        // const token = jwt.sign(
-        //   { _id: user._id, role: user.role },
-        //   process.env.JWT_SECRET,
-        //   { expiresIn: "1d" }
-        // );
-        const token = generateJwtToken(user._id, user.role);
-        const { _id, firstName, lastName, email, role, fullName } = user;
-        res.status(200).json({
-          token,
-          user: { _id, firstName, lastName, email, role, fullName },
+        const accessToken = generateAccessJwtToken(
+          user._id,
+          user.email,
+          user.fullName,
+          user.role
+        );
+
+        const refreshToken = generateRefreshJwtToken(user._id, user.role);
+
+        user.accessToken = accessToken;
+        user.refreshToken = refreshToken;
+
+        user
+          .save()
+          .then(({ _id, firstName, lastName, email, fullName, role }) => {
+            //TODO add secure and domain
+            res.cookie("refresh-token", refreshToken, {
+              expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+              httpOnly: true,
+            });
+
+            return res.status(200).json({
+              accessToken,
+              user: { _id, firstName, lastName, email, fullName, role },
+            });
+          })
+          .catch((err) => {
+            return res.status(400).json({
+              message: "Cannot save tokens",
+              err,
+            });
+          });
+      } else if (user.role === "admin") {
+        res.status(400).json({
+          message: "Try Admin Login",
         });
       } else {
+        console.log("at 100");
         return res.status(400).json({
           message: "Something went wrong",
         });
       }
     } else {
+      console.log("at 106");
       return res.status(400).json({ message: "Something went wrong" });
     }
   });
 };
 
 exports.signout = (req, res) => {
-  res.clearCookie("token");
-  res.status(200).json({
-    message: "Signed Out Successfulyy...!",
-  });
+  const userId = req.body._id;
+
+  User.findById(userId)
+    .then((user) => {
+      user.accessToken = "";
+      user.refreshToken = "";
+
+      user
+        .save()
+        .then((savedUsed) => {
+          res.clearCookie("refresh-token");
+          res.status(200).json({
+            message: "Signed Out Successfulyy...!",
+          });
+        })
+        .catch((err) => {
+          return res.status(400).json({
+            message: "Cannot save tokens",
+            err,
+          });
+        });
+    })
+    .catch((err) => {
+      return res.status(400).json({
+        message: "Cannot Logout",
+        err,
+      });
+    });
+};
+
+exports.refreshAccessToken = async (req, res) => {
+  let { accessToken } = req.body;
+  let refreshToken = req.cookies["refresh-token"];
+
+  try {
+    if (!refreshToken) {
+      throw new Error("Invalid Request");
+    }
+
+    const { _id } = jwt.decode(accessToken);
+
+    const user = await User.findById(_id);
+
+    if (user.refreshToken !== refreshToken) {
+      throw new Error("Invalid Request");
+    }
+
+    accessToken = jwt.sign(
+      {
+        _id: user._id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+      },
+      process.env.JWT_ACCESS_TOKEN,
+      {
+        expiresIn: 60 * 10 * 10,
+      }
+    );
+
+    user.accessToken = accessToken;
+
+    const savedUser = await user.save();
+
+    return res.status(200).json({
+      accessToken: savedUser.accessToken,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      message: "Bad Request",
+      error,
+    });
+  }
 };

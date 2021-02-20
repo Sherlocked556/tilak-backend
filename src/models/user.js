@@ -43,6 +43,12 @@ const userSchema = new mongoose.Schema(
     },
     contactNumber: { type: String },
     pofilePicture: { type: String },
+    accessToken: {
+      type: String,
+    },
+    refreshToken: {
+      type: String,
+    },
   },
   { timestamps: true }
 );

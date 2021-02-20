@@ -15,7 +15,7 @@ router.post(
   addItemToCart
 );
 //router.post('/user/cart/addToCartByLogin', requireSignin, userMiddleware, addToCart);
-router.post("/user/getCartItems", requireSignin, userMiddleware, getCartItems);
+router.get("/user/cart/getCartItems", requireSignin, userMiddleware, getCartItems);
 //new update
 router.post(
   "/user/cart/removeItem",

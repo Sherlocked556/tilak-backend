@@ -7,14 +7,29 @@ const orderSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    // TODO make addressId required
     addressId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "UserAddress.address",
-      required: true,
     },
     totalAmount: {
       type: Number,
       required: true,
+    },
+    paymentData: {
+      paymentProvider: {
+        enum: ["razorpay", "paypal"],
+        type: String,
+      },
+      orderId: {
+        type: String,
+      },
+      paymentId: {
+        type: String,
+      },
+      currency: {
+        type: String,
+      },
     },
     items: [
       {
@@ -39,8 +54,6 @@ const orderSchema = new mongoose.Schema(
     },
     paymentType: {
       type: String,
-      enum: ["cod", "card"],
-      required: true,
     },
     orderStatus: [
       {
@@ -51,6 +64,7 @@ const orderSchema = new mongoose.Schema(
         },
         date: {
           type: Date,
+          default: Date.now(),
         },
         isCompleted: {
           type: Boolean,
