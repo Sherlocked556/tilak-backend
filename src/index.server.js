@@ -41,7 +41,16 @@ mongoose
   });
 
 app.use(cookieParser());
-app.use(cors({credentials: true, origin: 'https://tilakshringar.com/'}));
+app.use(
+  cors({
+    credentials: true,
+    origin: [
+      "https://tilakshringar.com",
+      "https://www.tilakshringar.com",
+      "http://tilakshringar.com",
+    ],
+  })
+);
 app.use(express.json());
 app.use("/public", express.static(path.join(__dirname, "uploads")));
 app.use("/api", authRoutes);
