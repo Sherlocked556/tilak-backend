@@ -40,8 +40,32 @@ exports.addAddress = (req, res) => {
   }
 };
 
+exports.deleteAddress = async (req, res) => {
+  const { addressId } = req.params;
+
+  try {
+    const userAddress = await UserAddress.findOne({ user: req.user._id });
+
+    userAddress.address = userAddress.address.filter(
+      (address) => address._id != addressId
+    );
+
+    console.log(userAddress.address);
+
+    const savedAddress = await userAddress.save();
+
+    res.json({ address: savedAddress });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      msg: "Bad Request" || error.message,
+      error,
+    });
+  }
+};
+
 exports.getAddress = (req, res) => {
-  UserAddress.findOne({ user: req.user._id }).exec((error, userAddress) => {
+  UserAddress.find({ user: req.user._id }).exec((error, userAddress) => {
     if (error) return res.status(400).json({ error });
     if (userAddress) {
       res.status(200).json({ userAddress });

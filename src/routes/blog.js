@@ -9,16 +9,23 @@ const {
   deleteBlog,
   getAllBlogs,
   getBlogById,
+  postUploadBlogImages,
 } = require("../controller/blog");
+const customStorage = require("../common-middleware/customStorage");
 
-const storage = multer.diskStorage({
+const storage = new customStorage({
   destination: function (req, file, cb) {
-    cb(null, path.join(path.dirname(__dirname), "uploads"));
-  },
-  filename: function (req, file, cb) {
-    cb(null, shortid.generate() + "-" + file.originalname);
+    cb(
+      null,
+      path.join(
+        path.dirname(__dirname),
+        "uploads",
+        shortid.generate() + "-" + file.originalname
+      )
+    );
   },
 });
+
 const upload = multer({
   storage,
 });
@@ -36,5 +43,12 @@ router.patch("/blog/:id", requireSignin, adminMiddleware, updateBlog);
 router.delete("/blog/:id", requireSignin, adminMiddleware, deleteBlog);
 router.get("/blog/all", requireSignin, adminMiddleware, getAllBlogs);
 router.get("/blog/:id", requireSignin, adminMiddleware, getBlogById);
+router.post(
+  "/blog/uploadImg",
+  requireSignin,
+  adminMiddleware,
+  upload.single("file"),
+  postUploadBlogImages
+);
 
 module.exports = router;

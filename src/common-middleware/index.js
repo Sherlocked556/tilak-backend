@@ -5,6 +5,8 @@ const path = require("path");
 const multerS3 = require("multer-s3");
 const aws = require("aws-sdk");
 const User = require("../models/user");
+const sharp = require("sharp");
+const { readFileSync, unlinkSync } = require("fs");
 
 // const storage = multer.diskStorage({
 //   destination: function (req, file, cb) {
@@ -80,9 +82,14 @@ exports.requireSignin = async (req, res, next) => {
 };
 
 exports.userMiddleware = (req, res, next) => {
-  if (req.user.role !== "user") {
-    return res.status(400).json({ message: "User access denied" });
+  if (
+    req.user.role === "admin" ||
+    req.user.role === "user" ||
+    req.user.role === "super-admin"
+  ) {
+    return next();
   }
+  return res.status(400).json({ message: "Admin access denied" });
   next();
 };
 
@@ -99,3 +106,36 @@ exports.superAdminMiddleware = (req, res, next) => {
   }
   return res.status(400).json({ message: "Admin access denied" });
 };
+
+exports.compressMultipleImages = async (req, res, next) => {
+  console.log(req.files);
+
+  if (!req.files) {
+    return next();
+  }
+
+  req.body.images = [];
+
+  await Promise.all(
+    req.files.map(async (file) => {
+      // let buffer = readFileSync(file.path);
+
+      await sharp(file.path)
+        .resize(640, 420)
+        .toFormat("jpeg")
+        .jpeg({ quality: 95 })
+        .toFile(
+          path.join(path.dirname(__dirname), "uploads", file.filename)
+        );
+
+      unlinkSync(file.path);
+      req.body.images.push(file.filename);
+    })
+  );
+
+  next();
+};
+
+exports.compressSingleImages = (req, res, next) => {};
+
+exports.compressSingleImagesWithoutResize = (req, res, next) => {};

@@ -3,7 +3,7 @@ const Blog = require("../models/blog");
 exports.createBlog = async (req, res) => {
   let { title, content } = req.body;
   let { _id } = req.user;
-  let coverImg = req.file.filename;
+  let coverImg = req.file.path.split("\\").pop().split("/").pop();
 
   // if (req.files != null) {
   //   // productPictures = req.files.map((file) => {
@@ -34,9 +34,13 @@ exports.updateBlog = async (req, res) => {
   console.log(req.body);
 
   try {
-    let updatedBlog = await Blog.findByIdAndUpdate(id, {
-      $set: { title: title, content: content },
-    });
+    let updatedBlog = await Blog.findByIdAndUpdate(
+      id,
+      {
+        $set: { title: title, content: content },
+      },
+      { new: true }
+    );
 
     res.json(updatedBlog);
   } catch (error) {
@@ -75,5 +79,24 @@ exports.getBlogById = async (req, res) => {
     res.json(oneBlog);
   } catch (error) {
     return res.status(400).json(error);
+  }
+};
+
+exports.postUploadBlogImages = async (req, res) => {
+  console.log(req.file);
+  console.log(req.files);
+
+  if (req.file) {
+    res.json({
+      url: `http://localhost:2000/public/${req.file.path
+        .split("\\")
+        .pop()
+        .split("/")
+        .pop()}`,
+    });
+  } else {
+    res.status(400).json({
+      error: "Invalid Request",
+    });
   }
 };

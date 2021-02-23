@@ -1,6 +1,7 @@
 const Razorpay = require("razorpay");
 const paypal = require("paypal-rest-sdk");
 const crypto = require("crypto");
+const fx = require("money");
 require("dotenv").config();
 
 const Order = require("../models/order");
@@ -13,6 +14,8 @@ paypal.configure({
   client_secret: process.env.PAYPAL_SECRET,
 });
 
+// fx.settings = { from: "INR" };
+
 exports.createOrderRazorpay = async (req, res) => {
   try {
     let totalAmount = 0;
@@ -24,6 +27,8 @@ exports.createOrderRazorpay = async (req, res) => {
     cart.cartItems.forEach((prod) => {
       totalAmount += prod.product.price * prod.quantity;
     });
+
+    // console.log(parseInt(totalAmount), req.body.currency);
 
     const instance = new Razorpay({
       key_id: process.env.RAZORPAY_KEY_ID,
@@ -97,14 +102,21 @@ exports.createOrderPaypal = async (req, res) => {
       };
     });
 
+    // if (req.body.currency != "INR") {
+    //   totalAmount = await fx.convert(parseInt(totalAmount), {
+    //     from: "INR",
+    //     to: req.body.currency,
+    //   });
+    // }
+
     const create_payment_json = {
       intent: "SALE",
       payer: {
         payment_method: "paypal",
       },
       redirect_urls: {
-        return_url: "https://api.tilakshringar.com/api/addOrder/paypal",
-        cancel_url: "https://api.tilakshringar.com/api/addOrder/cancel?method=paypal",
+        return_url: "http://localhost:2000/api/addOrder/paypal",
+        cancel_url: "http://localhost:2000/api/addOrder/cancel?method=paypal",
       },
       transactions: [
         {
@@ -112,7 +124,7 @@ exports.createOrderPaypal = async (req, res) => {
             items: item_list,
           },
           amount: {
-            currency: req.body.currency,
+            currency: "INR",
             total: parseFloat(totalAmount),
           },
         },
@@ -121,7 +133,7 @@ exports.createOrderPaypal = async (req, res) => {
 
     paypal.payment.create(create_payment_json, async (error, payment) => {
       if (error) {
-        return res.json(error);
+        throw error;
       } else {
         console.log(payment);
         let redirect_uri = "";
@@ -298,4 +310,14 @@ exports.getOrder = (req, res) => {
         });
       }
     });
+};
+
+exports.getAllOrder = async (req, res) => {
+  try {
+    const orders = await Order.find({});
+
+    res.json(orders);
+  } catch (error) {
+    return res.status(400).json({ success: false, msg: "Bad Request", error });
+  }
 };

@@ -1,4 +1,8 @@
-const { requireSignin, userMiddleware } = require("../common-middleware");
+const {
+  requireSignin,
+  userMiddleware,
+  adminMiddleware,
+} = require("../common-middleware");
 const {
   addOrder,
   getOrders,
@@ -8,6 +12,7 @@ const {
   createOrderRazorpay,
   createOrderPaypal,
   addOrderPaypal,
+  getAllOrder,
 } = require("../controller/order");
 const router = require("express").Router();
 
@@ -30,5 +35,6 @@ router.get("/addOrder/paypal", addOrderPaypal);
 
 router.get("/getOrders", requireSignin, userMiddleware, getOrders);
 router.post("/getOrder", requireSignin, userMiddleware, getOrder);
+router.get("/getAllOrders", requireSignin, adminMiddleware, getAllOrder);
 
 module.exports = router;

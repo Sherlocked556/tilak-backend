@@ -61,7 +61,7 @@ exports.signin = (req, res) => {
 
     if (user) {
       const isPassword = await user.authenticate(req.body.password);
-      if (isPassword && user.role === "user") {
+      if (isPassword) {
         const accessToken = generateAccessJwtToken(
           user._id,
           user.email,
@@ -94,11 +94,13 @@ exports.signin = (req, res) => {
               err,
             });
           });
-      } else if (user.role === "admin") {
-        res.status(400).json({
-          message: "Try Admin Login",
-        });
-      } else {
+      }
+      // else if (user.role === "admin") {
+      //   res.status(400).json({
+      //     message: "Try Admin Login",
+      //   });
+      // }
+      else {
         console.log("at 100");
         return res.status(400).json({
           message: "Something went wrong",
