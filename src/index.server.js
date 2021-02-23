@@ -48,7 +48,6 @@ app.use(
       "https://tilakshringar.com",
       "https://www.tilakshringar.com",
       "http://tilakshringar.com",
-      "http://localhost:3000",
     ],
   })
 );
