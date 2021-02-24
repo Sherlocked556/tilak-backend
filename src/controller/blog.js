@@ -89,7 +89,7 @@ exports.postUploadBlogImages = async (req, res) => {
 
   if (req.file) {
     res.json({
-      url: `http://localhost:2000/public/${req.file.path
+      url: `https://api.tilakshringar.com/public/${req.file.path
         .split("\\")
         .pop()
         .split("/")
