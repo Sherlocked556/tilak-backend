@@ -1,7 +1,7 @@
 const Blog = require("../models/blog");
 
 exports.createBlog = async (req, res) => {
-  let { title, content } = req.body;
+  let { title, content, description } = req.body;
   let { _id } = req.user;
   let coverImg = req.file.path.split("\\").pop().split("/").pop();
 
@@ -17,6 +17,7 @@ exports.createBlog = async (req, res) => {
     let newBlog = await new Blog({
       title,
       content,
+      description,
       createdBy: _id,
       coverImg,
     }).save();
@@ -29,7 +30,7 @@ exports.createBlog = async (req, res) => {
 
 exports.updateBlog = async (req, res) => {
   let id = req.params.id;
-  let { title, content } = req.body;
+  let { title, content, description } = req.body;
 
   console.log(req.body);
 
@@ -37,7 +38,7 @@ exports.updateBlog = async (req, res) => {
     let updatedBlog = await Blog.findByIdAndUpdate(
       id,
       {
-        $set: { title: title, content: content },
+        $set: { title: title, content: content, description: description },
       },
       { new: true }
     );
@@ -88,7 +89,7 @@ exports.postUploadBlogImages = async (req, res) => {
 
   if (req.file) {
     res.json({
-      url: `https://api.tilakshringar.com/public/${req.file.path
+      url: `http://localhost:2000/public/${req.file.path
         .split("\\")
         .pop()
         .split("/")

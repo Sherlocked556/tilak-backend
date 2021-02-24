@@ -22,10 +22,11 @@ const generateRefreshJwtToken = (_id, role) => {
 
 exports.signup = (req, res) => {
   User.findOne({ email: req.body.email }).exec(async (error, user) => {
-    if (user)
+    if (user) {
       return res.status(400).json({
-        error: "User already registered",
+        message: "User already exists",
       });
+    }
 
     const { firstName, lastName, email, password } = req.body;
     const hash_password = await bcrypt.hash(password, 10);
@@ -183,7 +184,7 @@ exports.refreshAccessToken = async (req, res) => {
     });
   } catch (error) {
     return res.status(400).json({
-      message: "Bad Request",
+      message: "Bad Request" || error.message,
       error,
     });
   }
