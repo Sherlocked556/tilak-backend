@@ -44,6 +44,14 @@ app.use(cookieParser());
 app.use(
   cors({
     credentials: true,
+    origin: [
+      "https://tilakshringar.com",
+      "https://www.tilakshringar.com",
+      "http://tilakshringar.com",
+      "http://www.tilakshringar.com",
+      "https://api.tilakshringar.com",
+      "http://api.tilakshringar.com",
+    ],
   })
 );
 app.use(express.json());
