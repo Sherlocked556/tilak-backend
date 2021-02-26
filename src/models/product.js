@@ -11,7 +11,7 @@ const productSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
-    price: {
+    basePrice: {
       type: Number,
       required: true,
     },
