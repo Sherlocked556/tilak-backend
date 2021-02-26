@@ -22,7 +22,7 @@ exports.createProduct = (req, res) => {
 
   if (req.files.length > 0) {
     productPictures = req.files.map((file) => {
-      const fileName = file.path.split('\\').pop().split('/').pop();
+      const fileName = file.path.split("\\").pop().split("/").pop();
 
       return { img: fileName };
     });
@@ -33,12 +33,11 @@ exports.createProduct = (req, res) => {
   let product;
 
   if (variant) {
-    let variants = JSON.parse(variant);
+    variants = JSON.parse(variant);
   }
 
-  console.log(variants);
-
   if (variants.length > 0) {
+    // console.log(variants);
     let low = Number.POSITIVE_INFINITY;
     let tmp;
 
