@@ -41,8 +41,8 @@ router.post(
 );
 router.patch("/blog/:id", requireSignin, adminMiddleware, updateBlog);
 router.delete("/blog/:id", requireSignin, adminMiddleware, deleteBlog);
-router.get("/blog/all", requireSignin, adminMiddleware, getAllBlogs);
-router.get("/blog/:id", requireSignin, adminMiddleware, getBlogById);
+router.get("/blog/all", getAllBlogs);
+router.get("/blog/:id", getBlogById);
 router.post(
   "/blog/uploadImg",
   requireSignin,

@@ -11,13 +11,12 @@ const productSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
-    price: {
+    basePrice: {
       type: Number,
       required: true,
     },
     quantity: {
       type: Number,
-      required: true,
     },
     description: {
       type: String,
@@ -47,16 +46,26 @@ const productSchema = new mongoose.Schema(
       required: true,
     },
     updatedAt: Date,
-    areVariants: {
+    areSizes: {
       type: Boolean,
       required: true,
     },
-    variants: [
-      {
-        variantName: { type: String },
-        price: { type: Number },
-      },
-    ]
+    sizes: {
+      sizeUnit: { type: String, enum: ["inch", "feet"] },
+      sizeVariants: [
+        {
+          quantity: {
+            type: Number,
+          },
+          addOnPrice: {
+            type: Number,
+          },
+          sizeValue: {
+            type: String,
+          },
+        },
+      ],
+    },
   },
   { timestamps: true }
 );

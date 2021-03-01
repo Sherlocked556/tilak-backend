@@ -7,6 +7,7 @@ require("dotenv").config();
 const Order = require("../models/order");
 const Cart = require("../models/cart");
 const Address = require("../models/address");
+const Product = require("../models/product");
 
 paypal.configure({
   mode: "sandbox",
@@ -21,12 +22,10 @@ exports.createOrderRazorpay = async (req, res) => {
     let totalAmount = 0;
     const cart = await Cart.findOne({ user: req.user._id }).populate(
       "cartItems.product",
-      "name price quantity description"
+      "name basePrice description areSizes sizes"
     );
 
-    cart.cartItems.forEach((prod) => {
-      totalAmount += prod.product.price * prod.quantity;
-    });
+    totalAmount = cart.totalAmount;
 
     // console.log(parseInt(totalAmount), req.body.currency);
 
@@ -43,14 +42,17 @@ exports.createOrderRazorpay = async (req, res) => {
     const cartItems = cart.cartItems.map((item) => {
       return {
         productId: item.product._id,
-        payablePrice: item.product.price,
+        payablePrice: item.price,
         purchasedQty: item.quantity,
+        purchasedSize: {
+          sizeUnit: item.size.sizeUnit,
+          sizeValue: item.size.sizeValue,
+        },
       };
     });
 
     instance.orders.create(options, async (err, order) => {
       if (!err) {
-        // TODO add addressId
         const newOrder = await new Order({
           user: req.user._id,
           totalAmount,
@@ -61,6 +63,7 @@ exports.createOrderRazorpay = async (req, res) => {
           },
           items: cartItems,
           paymentStatus: "pending",
+          addressId: req.body.addressId,
         }).save();
 
         return res.json({ order: newOrder });
@@ -78,27 +81,29 @@ exports.createOrderPaypal = async (req, res) => {
     let totalAmount = 0;
     const cart = await Cart.findOne({ user: req.user._id }).populate(
       "cartItems.product",
-      "name price quantity description"
+      "name basePrice description areSizes sizes"
     );
 
-    cart.cartItems.forEach((prod) => {
-      totalAmount += prod.product.price * prod.quantity;
-    });
+    totalAmount = cart.totalAmount;
 
     let item_list = cart.cartItems.map((item) => {
       return {
         name: item.product.name,
-        price: item.product.price,
+        price: parseFloat(item.price).toFixed(2),
         quantity: item.quantity,
-        currency: req.body.currency,
+        currency: "INR",
       };
     });
 
     const cartItems = cart.cartItems.map((item) => {
       return {
         productId: item.product._id,
-        payablePrice: item.product.price,
+        payablePrice: item.price,
         purchasedQty: item.quantity,
+        purchasedSize: {
+          sizeUnit: item.size.sizeUnit,
+          sizeValue: item.size.sizeValue,
+        },
       };
     });
 
@@ -125,37 +130,48 @@ exports.createOrderPaypal = async (req, res) => {
           },
           amount: {
             currency: "INR",
-            total: parseFloat(totalAmount),
+            total: parseFloat(totalAmount).toFixed(2),
           },
         },
       ],
     };
 
+    console.log(item_list);
+
     paypal.payment.create(create_payment_json, async (error, payment) => {
-      if (error) {
-        throw error;
-      } else {
-        console.log(payment);
-        let redirect_uri = "";
-        for (let i = 0; i < payment.links.length; i++) {
-          if (payment.links[i].rel === "approval_url") {
-            redirect_uri = payment.links[i].href;
+      try {
+        if (error) {
+          throw error;
+        } else {
+          console.log(payment);
+          let redirect_uri = "";
+          for (let i = 0; i < payment.links.length; i++) {
+            if (payment.links[i].rel === "approval_url") {
+              redirect_uri = payment.links[i].href;
+            }
           }
+
+          const newOrder = await new Order({
+            user: req.user._id,
+            totalAmount,
+            paymentData: {
+              paymentProvider: "paypal",
+              paymentId: payment.id,
+              currency: req.body.currency,
+            },
+            items: cartItems,
+            paymentStatus: "pending",
+            addressId: req.body.addressId,
+          }).save();
+
+          return res.json({ order: newOrder, redirect_uri });
         }
-
-        const newOrder = await new Order({
-          user: req.user._id,
-          totalAmount,
-          paymentData: {
-            paymentProvider: "paypal",
-            paymentId: payment.id,
-            currency: req.body.currency,
-          },
-          items: cartItems,
-          paymentStatus: "pending",
-        }).save();
-
-        return res.json({ order: newOrder, redirect_uri });
+      } catch (error) {
+        if (error.response) {
+          console.log(error.response.details);
+        } else {
+          console.log(error);
+        }
       }
     });
   } catch (error) {
@@ -196,6 +212,48 @@ exports.addOrderRazorpay = async (req, res) => {
       order.orderStatus.push({ type: "ordered", isCompleted: true });
 
       const deletedCart = await Cart.deleteOne({ user: order.user });
+
+      for (let i = 0; i < order.items.length; i++) {
+        let product = await Product.findById(order.items[i].productId);
+
+        console.log("product", product.sizes);
+
+        if (product.areSizes) {
+          console.log("areSizes true");
+
+          if (
+            product.sizes.sizeUnit === order.items[i].purchasedSize.sizeUnit
+          ) {
+            console.log("unit match", order.items);
+
+            for (let j = 0; j < product.sizes.sizeVariants.length; j++) {
+              if (
+                parseInt(product.sizes.sizeVariants[j].sizeValue) ===
+                order.items[i].purchasedSize.sizeValue
+              ) {
+                console.log("sizeValue match", product);
+                // console.log(
+                //   "prod",
+                //   product.sizes.sizeVariants[j],
+                //   order,
+                //   order.items[i].purchasedSize
+                // );
+
+                product.sizes.sizeVariants[j].quantity -=
+                  order.items[i].purchasedQty;
+              }
+            }
+          }
+        } else {
+          console.log("areSizes false");
+
+          product.quantity -= order.items[i].purchasedQty;
+          product.sizes = [];
+        }
+
+        const savedProdut = await product.save();
+        console.log(savedProdut);
+      }
 
       const savedOrder = await order.save();
 
@@ -242,6 +300,26 @@ exports.addOrderPaypal = async (req, res) => {
             order.orderStatus.push({ type: "ordered", isCompleted: true });
 
             const deletedCart = await Cart.deleteOne({ user: order.user });
+
+            for (let i = 0; i < order.items.length; i++) {
+              let product = await Product.findById(order.items[i].productId);
+
+              if (
+                product.sizes.sizeUnit === order.items[i].purchasedSize.sizeUnit
+              ) {
+                for (let j = 0; j < product.sizes.sizeVariants.length; j++) {
+                  if (
+                    product.sizes.sizeVariants[j].sizeValue ===
+                    order.items[i].purchasedSize.sizeValue
+                  ) {
+                    product.sizes.sizeVariants[j].quantity -=
+                      order.items[i].purchasedQty;
+                  }
+                }
+              }
+
+              await product.save();
+            }
 
             const savedOrder = await order.save();
 

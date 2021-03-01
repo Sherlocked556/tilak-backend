@@ -1,17 +1,20 @@
 const Cart = require("../models/cart");
 
-// function runUpdate(condition, updateData) {
-//   return new Promise((resolve, reject) => {
-//     //you update code here
-
-//     Cart.findOneAndUpdate(condition, updateData, { upsert: true })
-//       .then((result) => resolve())
-//       .catch((err) => reject(err));
-//   });
-// }
-
 exports.addItemToCart = async (req, res) => {
   let cartItem = req.body;
+
+  /**
+   * {
+   *  "product": "6034c1e6d14c6d67462c9164",
+      "quantity": 3
+      "size": {
+        sizeUnit: inch,
+        sizeValue: 12,
+        price: 123
+      }
+      amount: 123
+   * }
+   */
 
   try {
     const cart = await Cart.findOne({ user: req.user._id });
@@ -21,16 +24,22 @@ exports.addItemToCart = async (req, res) => {
         const item = cart.cartItems[i];
 
         console.log(item.product, cartItem.product);
-        if (item.product == cartItem.product) {
+        if (
+          item.product == cartItem.product &&
+          JSON.stringify(item.size) == JSON.stringify(cartItem.size)
+        ) {
           item.quantity += cartItem.quantity;
           cartItem.quantity = 0;
         }
       }
+      cart.totalAmount += cartItem.amount;
 
       if (cartItem.quantity > 0) {
         cart.cartItems.push({
           product: cartItem.product,
           quantity: cartItem.quantity,
+          size: cartItem.size,
+          price: cartItem.amount,
         });
       }
 
@@ -38,7 +47,7 @@ exports.addItemToCart = async (req, res) => {
         .save()
         .then((t) =>
           t
-            .populate("cartItems.product", "_id name price productPictures")
+            .populate("cartItems.product", "_id name basePrice productPictures")
             .execPopulate()
         );
 
@@ -50,13 +59,16 @@ exports.addItemToCart = async (req, res) => {
           {
             product: cartItem.product,
             quantity: cartItem.quantity,
+            size: cartItem.size,
+            price: cartItem.amount,
           },
         ],
+        totalAmount: cartItem.amount,
       })
         .save()
         .then((t) =>
           t
-            .populate("cartItems.product", "_id name price productPictures")
+            .populate("cartItems.product", "_id name basePrice productPictures")
             .execPopulate()
         );
 
@@ -69,54 +81,6 @@ exports.addItemToCart = async (req, res) => {
   }
 };
 
-// exports.addItemToCart = (req, res) => {
-//   Cart.findOne({ user: req.user._id }).exec((error, cart) => {
-//     if (error) return res.status(400).json({ error });
-//     if (cart) {
-//       //if cart already exists then update cart by quantity
-//       let promiseArray = [];
-
-//       req.body.cartItems.forEach((cartItem) => {
-//         const product = cartItem.product;
-//         const item = cart.cartItems.find((c) => c.product == product);
-//         let condition, update;
-//         if (item) {
-//           condition = { user: req.user._id, "cartItems.product": product };
-//           update = {
-//             $set: {
-//               "cartItems.$": cartItem,
-//             },
-//           };
-//         } else {
-//           condition = { user: req.user._id };
-//           update = {
-//             $push: {
-//               cartItems: cartItem,
-//             },
-//           };
-//         }
-//         promiseArray.push(runUpdate(condition, update));
-
-//       });
-//       Promise.all(promiseArray)
-//         .then((response) => res.status(201).json({ response }))
-//         .catch((error) => res.status(400).json({ error }));
-//     } else {
-//       //if cart not exist then create a new cart
-//       const cart = new Cart({
-//         user: req.user._id,
-//         cartItems: req.body.cartItems,
-//       });
-//       cart.save((error, cart) => {
-//         if (error) return res.status(400).json({ error });
-//         if (cart) {
-//           return res.status(201).json({ cart });
-//         }
-//       });
-//     }
-//   });
-// };
-
 exports.getCartItems = async (req, res) => {
   try {
     if (!req.cookies["refresh-token"]) {
@@ -125,10 +89,29 @@ exports.getCartItems = async (req, res) => {
 
     const cart = await Cart.findOne({ user: req.user._id }).populate(
       "cartItems.product",
-      "_id name price productPictures"
+      "_id name basePrice productPictures availability sizes areSizes"
     );
 
-    res.json(cart);
+    cart.cartItems.forEach((item, index) => {
+      if (!item.product.availability) {
+        cart.cartItems.splice(index, 1);
+
+        cart.totalAmount -= item.price;
+      }
+    });
+
+    const updatedCart = await cart
+      .save()
+      .then((t) =>
+        t
+          .populate(
+            "cartItems.product",
+            "_id name basePrice productPictures areSizes sizes"
+          )
+          .execPopulate()
+      );
+
+    res.json(updatedCart);
   } catch (error) {
     res.status(400).json({
       success: false,
@@ -139,16 +122,19 @@ exports.getCartItems = async (req, res) => {
 
 // new update remove cart items
 exports.removeCartItems = (req, res) => {
-  const { productId } = req.body;
+  const { productId, price } = req.body;
   if (productId) {
-    Cart.update(
+    console.log(productId);
+
+    Cart.updateOne(
       { user: req.user._id },
       {
         $pull: {
           cartItems: {
-            product: productId,
+            _id: productId,
           },
         },
+        $inc: { totalAmount: -price },
       }
     ).exec((error, result) => {
       if (error) return res.status(400).json({ error });
