@@ -18,13 +18,17 @@ const inventorySchema = Schema(
     styles: [
       {
         styleName: { type: String, required: true },
-        products: [
+        items: [
           {
-            product: {
-              type: mongoose.Schema.Types.ObjectId,
-              ref: "Product",
-              required: true,
-            },
+            styleValue: { type: String },
+            products: [
+              {
+                product: {
+                  type: Schema.Types.ObjectId,
+                  ref: "Product",
+                },
+              },
+            ],
           },
         ],
       },

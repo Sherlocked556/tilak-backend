@@ -7,10 +7,10 @@ const orderSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    // TODO make addressId required
     addressId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "UserAddress.address",
+      required: true,
     },
     totalAmount: {
       type: Number,
@@ -44,6 +44,10 @@ const orderSchema = new mongoose.Schema(
         purchasedQty: {
           type: Number,
           required: true,
+        },
+        purchasedSize: {
+          sizeUnit: { type: String },
+          sizeValue: { type: Number },
         },
       },
     ],

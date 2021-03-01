@@ -4,84 +4,92 @@ const slugify = require("slugify");
 const Category = require("../models/category");
 
 exports.createProduct = (req, res) => {
-  //res.status(200).json( { file: req.files, body: req.body } );
-
-  const {
+  let {
     name,
-    price,
+    basePrice,
     description,
     category,
     quantity,
-    variant,
+    size,
+    areSizes,
     createdBy,
   } = req.body;
   let productPictures = [];
-  let variants = [];
+  let sizes = [];
 
-  console.log(req.files);
+  areSizes = areSizes === "true" ? true : false;
 
   if (req.files.length > 0) {
     productPictures = req.files.map((file) => {
-      const fileName = file.path.split('\\').pop().split('/').pop();
+      const fileName = file.path.split("\\").pop().split("/").pop();
 
       return { img: fileName };
     });
   }
 
-  // console.log(req.body.images);
-
   let product;
 
-  if (variant) {
-    let variants = JSON.parse(variant);
+  if (size) {
+    sizes = JSON.parse(size);
   }
 
-  console.log(variants);
+  Product.findOne({ slug: slugify(name) }).then((oldProduct) => {
+    if (oldProduct) {
+      return res.status(400).json({
+        success: false,
+        msg: "Product with same name already exists",
+      });
+    } else {
+      if (areSizes) {
+        let avial = false;
 
-  if (variants.length > 0) {
-    let low = Number.POSITIVE_INFINITY;
-    let tmp;
+        for (let i = 0; i < sizes.sizeVariants.length; i++) {
+          if (sizes.sizeVariants[i].quantity > 0) {
+            // console.log(sizes.sizeVariants[i].quantity);
+            avial = true;
+            break;
+          }
+        }
 
-    for (let i = 0; i < variants.length; i++) {
-      tmp = variants[i].price;
-      if (tmp < low) low = tmp;
-    }
+        product = new Product({
+          name: name,
+          slug: slugify(name),
+          description,
+          productPictures,
+          category,
+          createdBy: req.user._id,
+          availability: avial,
+          areSizes: true,
+          sizes: {
+            sizeUnit: sizes.sizeUnit,
+            sizeVariants: sizes.sizeVariants,
+          },
+          basePrice,
+        });
+      } else {
+        product = new Product({
+          name: name,
+          slug: slugify(name),
+          basePrice,
+          quantity,
+          description,
+          productPictures,
+          category,
+          createdBy: req.user._id,
+          areSizes: false,
+          availability: quantity > 0 ? true : false,
+        });
+      }
 
-    product = new Product({
-      name: name,
-      slug: slugify(name),
-      quantity,
-      description,
-      productPictures,
-      category,
-      createdBy: req.user._id,
-      availability: quantity > 0 ? true : false,
-      areVariants: true,
-      variants,
-      price: low,
-    });
-  } else {
-    product = new Product({
-      name: name,
-      slug: slugify(name),
-      price,
-      quantity,
-      description,
-      productPictures,
-      category,
-      createdBy: req.user._id,
-      areVariants: false,
-      availability: quantity > 0 ? true : false,
-    });
-  }
-
-  product.save((error, product) => {
-    if (error) {
-      console.log(error);
-      return res.status(400).json({ error });
-    }
-    if (product) {
-      res.status(201).json({ product });
+      product.save((error, product) => {
+        if (error) {
+          console.log(error);
+          return res.status(400).json({ error });
+        }
+        if (product) {
+          return res.status(201).json({ product });
+        }
+      });
     }
   });
 };
@@ -113,18 +121,18 @@ exports.getProductsBySlug = (req, res) => {
                   under30k: 30000,
                 },
                 productsByPrice: {
-                  under5k: products.filter((product) => product.price <= 5000),
+                  under5k: products.filter((product) => product.basePrice <= 5000),
                   under10k: products.filter(
-                    (product) => product.price > 5000 && product.price <= 10000
+                    (product) => product.basePrice > 5000 && product.basePrice <= 10000
                   ),
                   under15k: products.filter(
-                    (product) => product.price > 10000 && product.price <= 15000
+                    (product) => product.basePrice > 10000 && product.basePrice <= 15000
                   ),
                   under20k: products.filter(
-                    (product) => product.price > 15000 && product.price <= 20000
+                    (product) => product.basePrice > 15000 && product.basePrice <= 20000
                   ),
                   under30k: products.filter(
-                    (product) => product.price > 20000 && product.price <= 30000
+                    (product) => product.basePrice > 20000 && product.basePrice <= 30000
                   ),
                 },
               });
@@ -169,7 +177,7 @@ exports.deleteProductById = (req, res) => {
 exports.getProducts = async (req, res) => {
   const products = await Product.find({ createdBy: req.user._id })
     .select(
-      "_id name price quantity slug description productPictures category availability"
+      "_id name basePrice quantity slug description productPictures category availability"
     )
     .populate({ path: "category", select: "_id name" })
     .exec();
@@ -207,41 +215,45 @@ exports.patchProduct = async (req, res) => {
 exports.patchProductById = async (req, res) => {
   let product = req.body;
 
-  console.log(product);
+  // console.log(product);
 
   let newProductPictures = [];
-  let variant = [];
+  let size = [];
 
-  product.areVariants = product.areVariants === "true" ? true : false;
+  product.areSizes = product.areSizes === "true" ? true : false;
   product.availability = product.availability === "true" ? true : false;
 
-  if (parseInt(product.quantity) === 0) {
-    product.availability = false;
+  if (product.quantity && !product.areSizes) {
+    if (parseInt(product.quantity) === 0) {
+      product.availability = false;
+    }
   }
 
-  if (product.areVariants) {
-    variant = JSON.parse(product.variant);
+  if (product.areSizes) {
+    size = JSON.parse(product.size);
   }
 
   if (req.files.length > 0) {
     newProductPictures = req.files.map((file) => {
-      return { img: file.filename };
+      const fileName = file.path.split("\\").pop().split("/").pop();
+
+      return { img: fileName };
     });
   }
 
-  console.log("new pics", newProductPictures);
+  // console.log("new pics", newProductPictures);
 
   product.productPictures = [
     ...JSON.parse(product.prevProductImages),
     ...newProductPictures,
   ];
 
-  product.variants = variant;
+  product.sizes = size;
 
   delete product.prevProductImages;
-  delete product.variant;
+  delete product.size;
 
-  console.log(product);
+  // console.log(product);
 
   try {
     if (!product) {

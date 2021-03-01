@@ -2,18 +2,6 @@ const { default: slugify } = require("slugify");
 const Inventory = require("../models/inventory");
 
 exports.createInventory = async (req, res) => {
-  /**
-   * {
-   *  name,
-   *  thumbnail: img,
-   *  styles: [
-   *    styleName: "Colour",
-   *    products: [array of productIds]
-   * ]
-   * }
-   *
-   */
-
   let { name, styles } = req.body;
   const thumbnail = req.file.path.split("\\").pop().split("/").pop();
 
@@ -21,6 +9,8 @@ exports.createInventory = async (req, res) => {
     if (styles) {
       styles = JSON.parse(styles);
     }
+
+    // console.log(JSON.parse(styles));
 
     const newInventory = await new Inventory({
       name,
@@ -34,31 +24,108 @@ exports.createInventory = async (req, res) => {
       inventory: newInventory,
     });
   } catch (error) {
+    console.log(error);
+
     return res.status(400).json({
       success: false,
-      msg: "Bad Request" || error.message,
+      msg: "Bad Request" || error.message || error.name,
       error,
     });
   }
 };
 
 exports.editInventory = async (req, res) => {
-  let { inventory } = req.body;
+  let inventoryId = req.params.id;
+  let inventory = req.body;
 
-  const thumbnail = req.file.path.split("\\").pop().split("/").pop();
+  let thumbnail = "";
+  let styles = {};
 
   try {
-    
+    if (req.file) {
+      thumbnail = req.file.path.split("\\").pop().split("/").pop();
+    }
 
+    if (thumbnail && thumbnail !== inventory.thumbnail) {
+      inventory.thumbnail = thumbnail;
+    }
+
+    if (inventory.prevStyles) {
+      inventory.styles = JSON.parse(inventory.prevStyles);
+
+      delete inventory.prevStyles;
+    }
+    // console.log("ealhdsj");
+
+    console.log(inventory.styles);
+
+    inventory.slug = slugify(inventory.name);
+
+    const updatedInventory = await Inventory.findByIdAndUpdate(
+      inventoryId,
+      inventory,
+      { new: true }
+    );
+
+    console.log(updatedInventory);
+
+    return res.json({
+      success: true,
+      inventory: updatedInventory,
+    });
   } catch (error) {
+    console.log(error);
+
     return res.status(400).json({
       success: false,
-      msg: "Bad Request" || error.message,
+      msg: "Bad Request" || error.message || error.name,
       error,
     });
   }
 };
 
-exports.getInventory = async (req, res) => {};
+exports.getInventory = async (req, res) => {
+  try {
+    const inventory = await Inventory.find({});
 
-exports.deleteInventory = async (req, res) => {};
+    res.json({ success: true, inventory });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      msg: "Bad Request" || error.message || error.name,
+      error,
+    });
+  }
+};
+
+exports.getOneInventory = async (req, res) => {
+  let inventoryId = req.params.id;
+
+  try {
+    const inventory = await Inventory.findById(inventoryId);
+
+    res.json({ success: true, inventory });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      msg: "Bad Request" || error.message || error.name,
+      error,
+    });
+  }
+};
+
+exports.deleteInventory = async (req, res) => {
+  let inventory = req.params.id;
+
+  try {
+    const deletedInventory = await Inventory.findByIdAndDelete(inventory);
+
+    res.json({ success: true, inventory });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      msg: "Bad Request" || error.message || error.name,
+      error,
+    });
+  }
+};
