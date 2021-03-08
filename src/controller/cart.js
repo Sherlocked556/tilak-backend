@@ -16,6 +16,8 @@ exports.addItemToCart = async (req, res) => {
    * }
    */
 
+  console.log(cartItem);
+
   try {
     const cart = await Cart.findOne({ user: req.user._id });
 
@@ -28,9 +30,16 @@ exports.addItemToCart = async (req, res) => {
           item.product == cartItem.product &&
           JSON.stringify(item.size) == JSON.stringify(cartItem.size)
         ) {
+          console.log("hheheh 33");
+
+          item.quantity += cartItem.quantity;
+          cartItem.quantity = 0;
+        } else if (item.product == cartItem.product && !cartItem.size) {
+          console.log("hheheh 39");
           item.quantity += cartItem.quantity;
           cartItem.quantity = 0;
         }
+        console.log("hheheh none");
       }
       cart.totalAmount += cartItem.amount;
 
@@ -124,7 +133,7 @@ exports.getCartItems = async (req, res) => {
 exports.removeCartItems = (req, res) => {
   const { productId, price } = req.body;
   if (productId) {
-    console.log(productId);
+    console.log(productId, price);
 
     Cart.updateOne(
       { user: req.user._id },

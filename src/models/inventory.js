@@ -15,6 +15,11 @@ const inventorySchema = Schema(
       type: String,
       required: true,
     },
+    category: {
+      type: Schema.Types.ObjectId,
+      ref: "Category",
+      required: true,
+    },
     styles: [
       {
         styleName: { type: String, required: true },

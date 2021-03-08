@@ -8,7 +8,6 @@ exports.createProduct = (req, res) => {
     name,
     basePrice,
     description,
-    category,
     quantity,
     size,
     areSizes,
@@ -56,7 +55,7 @@ exports.createProduct = (req, res) => {
           slug: slugify(name),
           description,
           productPictures,
-          category,
+          category: "",
           createdBy: req.user._id,
           availability: avial,
           areSizes: true,
@@ -74,7 +73,7 @@ exports.createProduct = (req, res) => {
           quantity,
           description,
           productPictures,
-          category,
+          category: "",
           createdBy: req.user._id,
           areSizes: false,
           availability: quantity > 0 ? true : false,
@@ -177,9 +176,8 @@ exports.deleteProductById = (req, res) => {
 exports.getProducts = async (req, res) => {
   const products = await Product.find({ createdBy: req.user._id })
     .select(
-      "_id name basePrice quantity slug description productPictures category availability"
+      "_id name basePrice quantity slug description productPictures availability areSizes"
     )
-    .populate({ path: "category", select: "_id name" })
     .exec();
 
   res.status(200).json({ products });

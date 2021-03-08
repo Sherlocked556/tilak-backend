@@ -2,7 +2,7 @@ const { default: slugify } = require("slugify");
 const Inventory = require("../models/inventory");
 
 exports.createInventory = async (req, res) => {
-  let { name, styles } = req.body;
+  let { name, styles, category } = req.body;
   const thumbnail = req.file.path.split("\\").pop().split("/").pop();
 
   try {
@@ -16,8 +16,11 @@ exports.createInventory = async (req, res) => {
       name,
       slug: slugify(name),
       thumbnail,
+      category,
       styles: styles,
-    }).save();
+    })
+      .save()
+      .then((t) => t.populate("category", "_id name").execPopulate());
 
     return res.json({
       success: true,
@@ -65,7 +68,9 @@ exports.editInventory = async (req, res) => {
       inventoryId,
       inventory,
       { new: true }
-    );
+    )
+      .populate("category", "_id name")
+      .exec();
 
     console.log(updatedInventory);
 
@@ -86,7 +91,9 @@ exports.editInventory = async (req, res) => {
 
 exports.getInventory = async (req, res) => {
   try {
-    const inventory = await Inventory.find({});
+    const inventory = await Inventory.find({})
+      .populate("category", "_id name")
+      .exec();
 
     res.json({ success: true, inventory });
   } catch (error) {
@@ -102,7 +109,9 @@ exports.getOneInventory = async (req, res) => {
   let inventoryId = req.params.id;
 
   try {
-    const inventory = await Inventory.findById(inventoryId);
+    const inventory = await Inventory.findById(inventoryId)
+      .populate("category", "_id name")
+      .exec();
 
     res.json({ success: true, inventory });
   } catch (error) {
