@@ -360,6 +360,7 @@ exports.getOrders = (req, res) => {
   Order.find({ user: req.user._id })
     .select("_id paymentStatus paymentType orderStatus items")
     .populate("items.productId", "_id name productPictures")
+    .populate("user", "_id firstName lastName role")
     .exec((error, orders) => {
       if (error) return res.status(400).json({ error });
       if (orders) {
@@ -371,6 +372,7 @@ exports.getOrders = (req, res) => {
 exports.getOrder = (req, res) => {
   Order.findOne({ _id: req.body.orderId })
     .populate("items.productId", "_id name productPictures")
+    .populate("user", "_id firstName lastName role")
     .lean()
     .exec((error, order) => {
       if (error) return res.status(400).json({ error });
@@ -392,7 +394,10 @@ exports.getOrder = (req, res) => {
 
 exports.getAllOrder = async (req, res) => {
   try {
-    const orders = await Order.find({});
+    const orders = await Order.find({})
+      .populate("items.productId", "_id name")
+      .populate("user", "_id firstName lastName role")
+      .exec();
 
     res.json(orders);
   } catch (error) {
