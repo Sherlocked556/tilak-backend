@@ -53,6 +53,14 @@ exports.createOrderRazorpay = async (req, res) => {
 
     instance.orders.create(options, async (err, order) => {
       if (!err) {
+        const userAddress = await Address.findOne({ user: req.user._id });
+
+        const address = userAddress.address.find(
+          (item) => item._id.toString() == req.body.addressId.toString()
+        );
+
+        console.log(address);
+
         const newOrder = await new Order({
           user: req.user._id,
           totalAmount,
@@ -64,6 +72,7 @@ exports.createOrderRazorpay = async (req, res) => {
           items: cartItems,
           paymentStatus: "pending",
           addressId: req.body.addressId,
+          billingAddress: address,
         }).save();
 
         return res.json({ order: newOrder });
@@ -150,6 +159,11 @@ exports.createOrderPaypal = async (req, res) => {
               redirect_uri = payment.links[i].href;
             }
           }
+          const userAddress = await Address.findOne({ user: req.user._id });
+
+          const address = userAddress.address.find(
+            (item) => item._id.toString() == req.body.addressId.toString()
+          );
 
           const newOrder = await new Order({
             user: req.user._id,
@@ -162,6 +176,7 @@ exports.createOrderPaypal = async (req, res) => {
             items: cartItems,
             paymentStatus: "pending",
             addressId: req.body.addressId,
+            billingAddress: address,
           }).save();
 
           return res.json({ order: newOrder, redirect_uri });
@@ -323,7 +338,7 @@ exports.addOrderPaypal = async (req, res) => {
 
             const savedOrder = await order.save();
 
-            return res.json({ savedOrder });
+            return res.redirect("http://localhost:3000/profile");
           } else {
             res.send("payment not successful");
           }
@@ -358,9 +373,10 @@ exports.addOrder = (req, res) => {
 
 exports.getOrders = (req, res) => {
   Order.find({ user: req.user._id })
-    .select("_id paymentStatus paymentType orderStatus items")
+    .select(
+      "_id paymentStatus paymentType orderStatus items paymentData totalAmount"
+    )
     .populate("items.productId", "_id name productPictures")
-    .populate("user", "_id firstName lastName role")
     .exec((error, orders) => {
       if (error) return res.status(400).json({ error });
       if (orders) {
@@ -378,7 +394,7 @@ exports.getOrder = (req, res) => {
       if (error) return res.status(400).json({ error });
       if (order) {
         Address.findOne({
-          user: req.user._id,
+          user: order.user._id,
         }).exec((error, address) => {
           if (error) return res.status(400).json({ error });
           order.address = address.address.find(
@@ -395,12 +411,14 @@ exports.getOrder = (req, res) => {
 exports.getAllOrder = async (req, res) => {
   try {
     const orders = await Order.find({})
-      .populate("items.productId", "_id name")
+      .populate("items.productId", "_id name productPictures")
       .populate("user", "_id firstName lastName role")
       .exec();
 
-    res.json(orders);
+    return res.json(orders);
   } catch (error) {
+    console.log(error);
+
     return res.status(400).json({ success: false, msg: "Bad Request", error });
   }
 };

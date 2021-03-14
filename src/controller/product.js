@@ -120,18 +120,24 @@ exports.getProductsBySlug = (req, res) => {
                   under30k: 30000,
                 },
                 productsByPrice: {
-                  under5k: products.filter((product) => product.basePrice <= 5000),
+                  under5k: products.filter(
+                    (product) => product.basePrice <= 5000
+                  ),
                   under10k: products.filter(
-                    (product) => product.basePrice > 5000 && product.basePrice <= 10000
+                    (product) =>
+                      product.basePrice > 5000 && product.basePrice <= 10000
                   ),
                   under15k: products.filter(
-                    (product) => product.basePrice > 10000 && product.basePrice <= 15000
+                    (product) =>
+                      product.basePrice > 10000 && product.basePrice <= 15000
                   ),
                   under20k: products.filter(
-                    (product) => product.basePrice > 15000 && product.basePrice <= 20000
+                    (product) =>
+                      product.basePrice > 15000 && product.basePrice <= 20000
                   ),
                   under30k: products.filter(
-                    (product) => product.basePrice > 20000 && product.basePrice <= 30000
+                    (product) =>
+                      product.basePrice > 20000 && product.basePrice <= 30000
                   ),
                 },
               });
@@ -213,7 +219,7 @@ exports.patchProduct = async (req, res) => {
 exports.patchProductById = async (req, res) => {
   let product = req.body;
 
-  // console.log(product);
+  console.log(product);
 
   let newProductPictures = [];
   let size = [];
@@ -241,10 +247,14 @@ exports.patchProductById = async (req, res) => {
 
   // console.log("new pics", newProductPictures);
 
-  product.productPictures = [
-    ...JSON.parse(product.prevProductImages),
-    ...newProductPictures,
-  ];
+  if (product.prevProductImages) {
+    product.productPictures = [
+      ...JSON.parse(product.prevProductImages),
+      ...newProductPictures,
+    ];
+  } else {
+    product.productPictures = [...newProductPictures];
+  }
 
   product.sizes = size;
 
