@@ -42,11 +42,12 @@ const { readFileSync, unlinkSync } = require("fs");
 // });
 
 exports.requireSignin = async (req, res, next) => {
-  try {
-    if (req.cookies["refresh-token"] && req.headers.authorization) {
-      // console.log(req.cookies["refresh-token"], "refresh-token");
-      // console.log(req.headers.authorization, "access-token");
+  console.log("ahfjhakjkajhsdjkhajdhj");
 
+  try {
+    console.log(req.cookies["refresh-token"], "refresh-token");
+    console.log(req.headers.authorization, "access-token");
+    if (req.cookies["refresh-token"] && req.headers.authorization) {
       const refreshToken = jwt.verify(
         req.cookies["refresh-token"],
         process.env.JWT_REFRESH_TOKEN
@@ -124,9 +125,7 @@ exports.compressMultipleImages = async (req, res, next) => {
         .resize(640, 420)
         .toFormat("jpeg")
         .jpeg({ quality: 95 })
-        .toFile(
-          path.join(path.dirname(__dirname), "uploads", file.filename)
-        );
+        .toFile(path.join(path.dirname(__dirname), "uploads", file.filename));
 
       unlinkSync(file.path);
       req.body.images.push(file.filename);

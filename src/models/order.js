@@ -12,6 +12,63 @@ const orderSchema = new mongoose.Schema(
       ref: "UserAddress.address",
       required: true,
     },
+    billingAddress: {
+      name: {
+        type: String,
+        required: true,
+        trim: true,
+        min: 3,
+        max: 50,
+      },
+      mobileNumber: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+      pinCode: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+      locality: {
+        type: String,
+        required: true,
+        trim: true,
+        min: 10,
+        max: 100,
+      },
+      address: {
+        type: String,
+        required: true,
+        trim: true,
+        min: 10,
+        max: 100,
+      },
+      cityDistrictTown: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+      state: {
+        type: String,
+        required: true,
+        required: true,
+      },
+      landmark: {
+        type: String,
+        min: 10,
+        max: 100,
+      },
+      alternatePhone: {
+        type: String,
+      },
+      addressType: {
+        type: String,
+        required: true,
+        enum: ["home", "work"],
+        required: true,
+      },
+    },
     totalAmount: {
       type: Number,
       required: true,
@@ -79,5 +136,27 @@ const orderSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+orderSchema.methods.getAddress = function (cb) {
+  console.log("in methods");
+
+  mongoose
+    .model("UserAddress")
+    .findOne({ user: this.user }, function (err, userAddress) {
+      if (err) {
+        return cb(err, "No User Addresses Found.");
+      }
+
+      let billingAddress = userAddress.address.find(
+        (item) => item._id == this.addressId
+      );
+
+      if (!billingAddress) {
+        return cb(err, "No Matching Address Found.");
+      }
+
+      this.billingAddress = billingAddress;
+    });
+};
 
 module.exports = mongoose.model("Order", orderSchema);
