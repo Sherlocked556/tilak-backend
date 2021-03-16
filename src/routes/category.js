@@ -14,13 +14,18 @@ const router = express.Router();
 const shortid = require("shortid");
 const path = require("path");
 const multer = require("multer");
+const customStorage = require("../common-middleware/customStorage");
 
-const storage = multer.diskStorage({
+const storage = new customStorage({
   destination: function (req, file, cb) {
-    cb(null, path.join(path.dirname(__dirname), "uploads"));
-  },
-  filename: function (req, file, cb) {
-    cb(null, shortid.generate() + "-" + file.originalname);
+    cb(
+      null,
+      path.join(
+        path.dirname(__dirname),
+        "uploads",
+        shortid.generate() + "-" + file.originalname
+      )
+    );
   },
 });
 

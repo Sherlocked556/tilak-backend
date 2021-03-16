@@ -34,13 +34,14 @@ exports.addCategory = (req, res) => {
   };
 
   if (req.file) {
-    categoryObj.categoryImage =  "/public/" + req.file.filename;
+    categoryObj.categoryImage =
+      "/public/" + req.file.path.split("\\").pop().split("/").pop();
   }
 
   if (req.body.parentId) {
     categoryObj.parentId = req.body.parentId;
   }
-
+  req.file
   const cat = new Category(categoryObj);
   cat.save((error, category) => {
     if (error) return res.status(400).json({ error });
