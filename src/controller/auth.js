@@ -79,8 +79,10 @@ exports.signin = (req, res) => {
           .then(({ _id, firstName, lastName, email, fullName, role }) => {
             //TODO add secure and domain
             res.cookie("refresh-token", refreshToken, {
+              maxAge: 7 * 24 * 60 * 60 * 1000,
               httpOnly: true,
               secure: true,
+              sameSite: "None",
             });
 
             return res.status(200).json({
@@ -124,7 +126,12 @@ exports.signout = (req, res) => {
       user
         .save()
         .then((savedUsed) => {
-          res.clearCookie("refresh-token");
+          res.clearCookie("refresh-token", {
+            maxAge: 1,
+            secure: true,
+            sameSite: "None",
+            httpOnly: true,
+          });
 
           res.status(200).json({
             message: "Signed Out Successfulyy...!",
