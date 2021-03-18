@@ -80,6 +80,7 @@ exports.signin = (req, res) => {
           .then(({ _id, firstName, lastName, email, fullName, role }) => {
             //TODO add secure and domain
             res.cookie("refresh-token", refreshToken, {
+              domain: ".tilakshringar.com",
               maxAge: 7 * 24 * 60 * 60 * 1000,
               httpOnly: true,
               secure: true,
@@ -128,6 +129,7 @@ exports.signout = (req, res) => {
         .save()
         .then((savedUsed) => {
           res.clearCookie("refresh-token", {
+            domain: ".tilakshringar.com",
             maxAge: 1,
             secure: true,
             sameSite: "None",
