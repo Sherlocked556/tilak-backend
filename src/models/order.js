@@ -133,6 +133,9 @@ const orderSchema = new mongoose.Schema(
         },
       },
     ],
+    resellerCode: {
+      type: String,
+    },
   },
   { timestamps: true }
 );

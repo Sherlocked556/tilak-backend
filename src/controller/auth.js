@@ -41,14 +41,14 @@ exports.signup = (req, res) => {
     _user.save((error, user) => {
       if (error) {
         return res.status(400).json({
-          message: "Something went wrong",
+          msg: "Something went wrong",
         });
       }
 
       if (user) {
         return res.status(201).json({
           success: true,
-          message: "User Registered",
+          msg: "User Registered",
         });
       }
     });
@@ -94,25 +94,25 @@ exports.signin = (req, res) => {
           })
           .catch((err) => {
             return res.status(400).json({
-              message: "Cannot save tokens",
+              msg: "Cannot save tokens",
               err,
             });
           });
       }
       // else if (user.role === "admin") {
       //   res.status(400).json({
-      //     message: "Try Admin Login",
+      //     msg: "Try Admin Login",
       //   });
       // }
       else {
         console.log("at 100");
         return res.status(400).json({
-          message: "Something went wrong",
+          msg: "Something went wrong",
         });
       }
     } else {
       console.log("at 106");
-      return res.status(400).json({ message: "Something went wrong" });
+      return res.status(400).json({ msg: "Something went wrong" });
     }
   });
 };
@@ -137,19 +137,19 @@ exports.signout = (req, res) => {
           });
 
           res.status(200).json({
-            message: "Signed Out Successfulyy...!",
+            msg: "Signed Out Successfulyy...!",
           });
         })
         .catch((err) => {
           return res.status(400).json({
-            message: "Cannot save tokens",
+            msg: "Cannot save tokens",
             err,
           });
         });
     })
     .catch((err) => {
       return res.status(400).json({
-        message: "Cannot Logout",
+        msg: "Cannot Logout",
         err,
       });
     });
@@ -194,7 +194,7 @@ exports.refreshAccessToken = async (req, res) => {
     });
   } catch (error) {
     return res.status(400).json({
-      message: "Bad Request" || error.message,
+      msg: "Bad Request",
       error,
     });
   }

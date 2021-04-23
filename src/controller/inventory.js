@@ -31,7 +31,7 @@ exports.createInventory = async (req, res) => {
 
     return res.status(400).json({
       success: false,
-      msg: "Bad Request" || error.message || error.name,
+      msg: error.message || "Bad Request" || error.name,
       error,
     });
   }
@@ -83,7 +83,7 @@ exports.editInventory = async (req, res) => {
 
     return res.status(400).json({
       success: false,
-      msg: "Bad Request" || error.message || error.name,
+      msg: error.message || "Bad Request" || error.name,
       error,
     });
   }
@@ -99,7 +99,7 @@ exports.getInventory = async (req, res) => {
   } catch (error) {
     return res.status(400).json({
       success: false,
-      msg: "Bad Request" || error.message || error.name,
+      msg: error.message || "Bad Request" || error.name,
       error,
     });
   }
@@ -117,7 +117,7 @@ exports.getOneInventory = async (req, res) => {
   } catch (error) {
     return res.status(400).json({
       success: false,
-      msg: "Bad Request" || error.message || error.name,
+      msg: error.message || "Bad Request" || error.name,
       error,
     });
   }
@@ -133,7 +133,7 @@ exports.deleteInventory = async (req, res) => {
   } catch (error) {
     return res.status(400).json({
       success: false,
-      msg: "Bad Request" || error.message || error.name,
+      msg: error.message || "Bad Request" || error.name,
       error,
     });
   }

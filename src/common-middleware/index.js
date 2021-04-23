@@ -75,10 +75,10 @@ exports.requireSignin = async (req, res, next) => {
     // console.log("Access Token", req.headers.authorization)
 
     if (error.name === "TokenExpiredError") {
-      return res.status(403).json({ message: "Token expired" });
+      return res.status(403).json({ msg: "Token expired" });
     }
 
-    return res.status(400).json({ message: "Authorization required", error });
+    return res.status(400).json({ msg: "Authorization required", error });
   }
 };
 
@@ -86,11 +86,12 @@ exports.userMiddleware = (req, res, next) => {
   if (
     req.user.role === "admin" ||
     req.user.role === "user" ||
-    req.user.role === "super-admin"
+    req.user.role === "super-admin" ||
+    req.user.role === "reseller"
   ) {
     return next();
   }
-  return res.status(400).json({ message: "Admin access denied" });
+  return res.status(400).json({ msg: "User access denied" });
   next();
 };
 
@@ -98,14 +99,14 @@ exports.adminMiddleware = (req, res, next) => {
   if (req.user.role === "admin" || req.user.role === "super-admin") {
     return next();
   }
-  return res.status(400).json({ message: "Admin access denied" });
+  return res.status(400).json({ msg: "Admin access denied" });
 };
 
 exports.superAdminMiddleware = (req, res, next) => {
   if (req.user.role === "admin" || req.user.role === "super-admin") {
     return next();
   }
-  return res.status(400).json({ message: "Admin access denied" });
+  return res.status(400).json({ msg: "Admin access denied" });
 };
 
 exports.compressMultipleImages = async (req, res, next) => {

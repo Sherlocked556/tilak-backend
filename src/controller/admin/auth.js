@@ -7,7 +7,7 @@ exports.signup = (req, res) => {
   User.findOne({ email: req.body.email }).exec((error, user) => {
     if (user)
       return res.status(400).json({
-        message: "Admin already registered",
+        msg: "Admin already registered",
       });
 
     User.estimatedDocumentCount(async (err, count) => {
@@ -29,13 +29,13 @@ exports.signup = (req, res) => {
       _user.save((error, data) => {
         if (error) {
           return res.status(400).json({
-            message: "Something went wrong",
+            msg: "Something went wrong",
           });
         }
 
         if (data) {
           return res.status(201).json({
-            message: "Admin created Successfully..!",
+            msg: "Admin created Successfully..!",
           });
         }
       });
@@ -65,11 +65,11 @@ exports.signin = (req, res) => {
         });
       } else {
         return res.status(400).json({
-          message: "Invalid Password",
+          msg: "Invalid Password",
         });
       }
     } else {
-      return res.status(400).json({ message: "Something went wrong" });
+      return res.status(400).json({ msg: "Something went wrong" });
     }
   });
 };
@@ -77,6 +77,6 @@ exports.signin = (req, res) => {
 exports.signout = (req, res) => {
   res.clearCookie("token");
   res.status(200).json({
-    message: "Signout successfully...!",
+    msg: "Signout successfully...!",
   });
 };
