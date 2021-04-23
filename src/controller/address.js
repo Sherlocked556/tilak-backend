@@ -59,7 +59,7 @@ exports.deleteAddress = async (req, res) => {
   } catch (error) {
     return res.status(400).json({
       success: false,
-      msg: "Bad Request" || error.message,
+      msg: error.message || "Bad Request",
       error,
     });
   }

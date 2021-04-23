@@ -86,7 +86,7 @@ exports.addItemToCart = async (req, res) => {
   } catch (error) {
     return res
       .status(400)
-      .json({ error, message: "Error in adding item to cart." });
+      .json({ error, msg: "Error in adding item to cart." });
   }
 };
 

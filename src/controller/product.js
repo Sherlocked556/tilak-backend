@@ -180,11 +180,13 @@ exports.deleteProductById = (req, res) => {
 };
 
 exports.getProducts = async (req, res) => {
-  const products = await Product.find({ createdBy: req.user._id })
+  const products = await Product.find({})
     .select(
-      "_id name basePrice quantity slug description productPictures availability areSizes"
+      "_id name basePrice quantity slug description productPictures availability areSizes createdAt"
     )
     .exec();
+
+  console.log("Get all products", products.length);
 
   res.status(200).json({ products });
 };
@@ -210,7 +212,7 @@ exports.patchProduct = async (req, res) => {
   } catch (error) {
     return res.status(400).json({
       success: false,
-      msg: "Bad Request" || error.message,
+      msg: error.message || "Bad Request",
       error,
     });
   }
@@ -282,7 +284,7 @@ exports.patchProductById = async (req, res) => {
 
     return res.status(400).json({
       success: false,
-      msg: "Bad Request" || error.message,
+      msg: error.message || "Bad Request",
       error,
     });
   }

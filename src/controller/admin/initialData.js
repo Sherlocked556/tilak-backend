@@ -30,7 +30,7 @@ exports.initialData = async (req, res) => {
   const categories = await Category.find({}).exec();
   const products = await Product.find({})
     .select(
-      "_id name basePrice quantity slug description productPictures availability areSizes"
+      "_id name basePrice quantity slug description productPictures availability areSizes createdAt"
     )
     .exec();
   const orders = await Order.find({})

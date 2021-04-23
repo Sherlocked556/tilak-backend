@@ -8,6 +8,7 @@ const Order = require("../models/order");
 const Cart = require("../models/cart");
 const Address = require("../models/address");
 const Product = require("../models/product");
+const { Reseller } = require("../models/reseller");
 
 paypal.configure({
   mode: "sandbox",
@@ -25,7 +26,7 @@ exports.createOrderRazorpay = async (req, res) => {
       "name basePrice description areSizes sizes"
     );
 
-    totalAmount = cart.totalAmount;
+    totalAmount = cart.totalAmount + 50;
 
     // console.log(parseInt(totalAmount), req.body.currency);
 
@@ -52,32 +53,39 @@ exports.createOrderRazorpay = async (req, res) => {
     });
 
     instance.orders.create(options, async (err, order) => {
-      if (!err) {
-        const userAddress = await Address.findOne({ user: req.user._id });
+      try {
+        if (!err) {
+          const userAddress = await Address.findOne({ user: req.user._id });
 
-        const address = userAddress.address.find(
-          (item) => item._id.toString() == req.body.addressId.toString()
-        );
+          const address = userAddress.address.find(
+            (item) => item._id.toString() == req.body.addressId.toString()
+          );
 
-        console.log(address);
+          console.log(address);
 
-        const newOrder = await new Order({
-          user: req.user._id,
-          totalAmount,
-          paymentData: {
-            paymentProvider: "razorpay",
-            orderId: order.id,
-            currency: order.currency,
-          },
-          items: cartItems,
-          paymentStatus: "pending",
-          addressId: req.body.addressId,
-          billingAddress: address,
-        }).save();
+          const newOrder = await new Order({
+            user: req.user._id,
+            totalAmount,
+            paymentData: {
+              paymentProvider: "razorpay",
+              orderId: order.id,
+              currency: order.currency,
+            },
+            items: cartItems,
+            paymentStatus: "pending",
+            addressId: req.body.addressId,
+            billingAddress: address,
+            resellerCode: req.body.resellerCode || "",
+          }).save();
 
-        return res.json({ order: newOrder });
-      } else {
-        throw err;
+          return res.json({ order: newOrder });
+        } else {
+          throw err;
+        }
+      } catch (error) {
+        return res
+          .status(400)
+          .json({ success: false, msg: "Bad Request", error });
       }
     });
   } catch (error) {
@@ -93,7 +101,7 @@ exports.createOrderPaypal = async (req, res) => {
       "name basePrice description areSizes sizes"
     );
 
-    totalAmount = cart.totalAmount;
+    totalAmount = cart.totalAmount + 50;
 
     let item_list = cart.cartItems.map((item) => {
       return {
@@ -177,6 +185,7 @@ exports.createOrderPaypal = async (req, res) => {
             paymentStatus: "pending",
             addressId: req.body.addressId,
             billingAddress: address,
+            resellerCode: req.body.resellerCode || "",
           }).save();
 
           return res.json({ order: newOrder, redirect_uri });
@@ -270,6 +279,24 @@ exports.addOrderRazorpay = async (req, res) => {
         console.log(savedProdut);
       }
 
+      if (order.resellerCode !== "") {
+        const reseller = await Reseller.findOneAndUpdate(
+          {
+            resellerCode: order.resellerCode,
+          },
+          {
+            $push: {
+              orders: {
+                orderId: order._id,
+              },
+            },
+            $inc: {
+              requestablePoints: 1,
+            },
+          }
+        );
+      }
+
       const savedOrder = await order.save();
 
       return res.json({ savedOrder });
@@ -277,7 +304,7 @@ exports.addOrderRazorpay = async (req, res) => {
   } catch (error) {
     return res.status(400).json({
       success: false,
-      msg: "Bad Request" || error.message,
+      msg: error.message || "Bad Request",
       error,
     });
   }
@@ -336,6 +363,24 @@ exports.addOrderPaypal = async (req, res) => {
               await product.save();
             }
 
+            if (order.resellerCode !== "") {
+              const reseller = await Reseller.findOneAndUpdate(
+                {
+                  resellerCode: order.resellerCode,
+                },
+                {
+                  $push: {
+                    orders: {
+                      orderId: order._id,
+                    },
+                  },
+                  $inc: {
+                    requestablePoints: 1,
+                  },
+                }
+              );
+            }
+
             const savedOrder = await order.save();
 
             return res.redirect("http://localhost:3000/profile");
@@ -348,7 +393,7 @@ exports.addOrderPaypal = async (req, res) => {
   } catch (error) {
     return res.status(400).json({
       success: false,
-      msg: "Bad Request" || error.message,
+      msg: error.message || "Bad Request",
       error,
     });
   }
