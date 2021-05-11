@@ -5,6 +5,9 @@ const User = require("../models/user");
 
 exports.createReseller = async (req, res, next) => {
   let reqReseller = req.body.email;
+  let reqPercent = req.body.percent;
+
+  console.log(reqPercent);
 
   try {
     const user = await User.findOne({ email: reqReseller });
@@ -21,9 +24,34 @@ exports.createReseller = async (req, res, next) => {
       userId: user._id,
       resellerCode: shortid.generate(),
       orders: [],
+      percent: reqPercent,
     });
 
-    const savedReseller = await reseller.save();
+    const savedReseller = await reseller.save().then((t) =>
+      t
+        .populate([
+          {
+            path: "orders.orderId",
+            select:
+              "_id paymentData createdAt paymentStatus billingAddress totalAmount paymentType items orderStatus user",
+            populate: [
+              {
+                path: "items.productId",
+                select: "_id name productPictures",
+              },
+              {
+                path: "user",
+                select: "_id firstName lastName role email",
+              },
+            ],
+          },
+          {
+            path: "userId",
+            select: "_id firstName email role",
+          },
+        ])
+        .execPopulate()
+    );
 
     await user.save();
 
@@ -31,6 +59,55 @@ exports.createReseller = async (req, res, next) => {
       success: true,
       reseller: savedReseller,
       msg: "Reseller created Successfully",
+    });
+  } catch (error) {
+    console.log(error);
+
+    return res.status(400).json({
+      success: false,
+      msg: error.message || "Bad Request",
+      error,
+    });
+  }
+};
+
+exports.updateReseller = async (req, res, next) => {
+  let { percent, resellerId } = req.body;
+
+  try {
+    const updatedReseller = await Reseller.findByIdAndUpdate(
+      resellerId,
+      {
+        percent: percent,
+      },
+      { new: true }
+    )
+      .populate([
+        {
+          path: "orders.orderId",
+          select:
+            "_id paymentData createdAt paymentStatus billingAddress totalAmount paymentType items orderStatus user",
+          populate: [
+            {
+              path: "items.productId",
+              select: "_id name productPictures",
+            },
+            {
+              path: "user",
+              select: "_id firstName lastName role email",
+            },
+          ],
+        },
+        {
+          path: "userId",
+          select: "_id firstName email role",
+        },
+      ])
+      .exec();
+
+    res.json({
+      success: true,
+      reseller: updatedReseller,
     });
   } catch (error) {
     console.log(error);
@@ -58,7 +135,7 @@ exports.fetchReseller = async (req, res, next) => {
         },
         {
           path: "user",
-          select: "_id firstName lastName role",
+          select: "_id firstName lastName role email",
         },
       ],
     });
@@ -92,7 +169,7 @@ exports.fetchAllReseller = async (req, res, next) => {
           },
           {
             path: "user",
-            select: "_id firstName lastName role",
+            select: "_id firstName lastName role email",
           },
         ],
       },
@@ -114,9 +191,9 @@ exports.fetchAllReseller = async (req, res, next) => {
         {
           $group: {
             _id: null,
-            points: {
+            amount: {
               $sum: {
-                $cond: [{ $eq: ["$status", "processing"] }, "$points", 0],
+                $cond: [{ $eq: ["$status", "processing"] }, "$amount", 0],
               },
             },
           },
@@ -158,22 +235,26 @@ exports.createRequest = async (req, res, next) => {
     }
 
     let points = 0;
+    let amount = 0;
 
     for (let i = 0; i < reseller.orders.length; i++) {
       const order = reseller.orders[i];
 
       if (!order.claimed && !order.requested) {
         points++;
+        amount += order.orderAmount;
         order.requested = true;
       }
     }
 
+    reseller.requestableAmount = 0;
     reseller.requestablePoints = 0;
 
     const request = await new ResellerRequests({
       resellerId: reseller._id,
       date: new Date(),
       points,
+      amount: Math.round(amount * reseller.percent),
     }).save();
 
     await reseller.save();
@@ -201,30 +282,35 @@ exports.updateRequest = async (req, res, next) => {
     const request = await ResellerRequests.findById(requestId);
     const reseller = await Reseller.findById(request.resellerId);
 
-    if (status === "accepted") {
-      request.status = status;
+    if (request.status == "processing") {
+      if (status === "accepted") {
+        request.status = status;
 
-      for (let i = 0; i < reseller.orders.length; i++) {
-        const order = reseller.orders[i];
+        for (let i = 0; i < reseller.orders.length; i++) {
+          const order = reseller.orders[i];
 
-        if (!order.claimed && order.requested) {
-          order.claimed = true;
+          if (!order.claimed && order.requested) {
+            order.claimed = true;
+          }
         }
-      }
 
-      reseller.totalPoints += request.points;
-    } else if (status === "declined") {
-      request.status = status;
+        reseller.totalPoints += request.amount;
+      } else if (status === "declined") {
+        request.status = status;
 
-      for (let i = 0; i < reseller.orders.length; i++) {
-        const order = reseller.orders[i];
+        for (let i = 0; i < reseller.orders.length; i++) {
+          const order = reseller.orders[i];
 
-        if (!order.claimed && order.requested) {
-          order.requested = false;
+          if (!order.claimed && order.requested) {
+            order.requested = false;
+          }
         }
-      }
 
-      order.requestablePoints += request.points;
+        reseller.requestablePoints += request.points;
+        reseller.requestableAmount += request.amount;
+      }
+    } else {
+      throw new Error("Request has been accepted/declined.");
     }
 
     const updatedRequest = await request.save();
@@ -330,7 +416,7 @@ exports.fetchAllRequests = async (req, res, next) => {
       select: "userId",
       populate: {
         path: "userId",
-        select: "_id firstName lastName role",
+        select: "_id firstName lastName role email",
       },
     });
 

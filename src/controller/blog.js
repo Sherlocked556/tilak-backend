@@ -20,6 +20,7 @@ exports.createBlog = async (req, res) => {
       description,
       createdBy: _id,
       coverImg,
+      description,
     }).save();
 
     res.json(newBlog);

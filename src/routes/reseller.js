@@ -1,19 +1,21 @@
 const express = require("express");
 const {
-	createReseller,
-	fetchReseller,
-	fetchAllReseller,
-	createRequest,
-	updateRequest,
-	fetchRequests,
-	fetchResellerRequests,
-	fetchAllRequests,
-	deleteReseller,
+  createReseller,
+  fetchReseller,
+  fetchAllReseller,
+  createRequest,
+  updateRequest,
+  fetchRequests,
+  fetchResellerRequests,
+  fetchAllRequests,
+  deleteReseller,
+  updateReseller,
 } = require("../controller/reseller");
 
 const router = express.Router();
 
 router.post("/reseller", createReseller);
+router.patch("/reseller", updateReseller);
 router.get("/reseller", fetchAllReseller);
 router.delete("/reseller/:resellerId", deleteReseller);
 router.post("/reseller/request", createRequest);
