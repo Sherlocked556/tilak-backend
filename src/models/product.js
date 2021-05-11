@@ -17,6 +17,7 @@ const productSchema = new mongoose.Schema(
     },
     quantity: {
       type: Number,
+      default: -1,
     },
     description: {
       type: String,
@@ -43,7 +44,6 @@ const productSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    updatedAt: Date,
     areSizes: {
       type: Boolean,
       required: true,

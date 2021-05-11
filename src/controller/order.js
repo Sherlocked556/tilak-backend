@@ -106,10 +106,17 @@ exports.createOrderPaypal = async (req, res) => {
     let item_list = cart.cartItems.map((item) => {
       return {
         name: item.product.name,
-        price: parseFloat(item.price).toFixed(2),
+        price: parseFloat(item.price / item.quantity).toFixed(2),
         quantity: item.quantity,
         currency: "INR",
       };
+    });
+
+    item_list.push({
+      name: "Delivery",
+      price: parseFloat(50).toFixed(2),
+      quantity: 1,
+      currency: "INR",
     });
 
     const cartItems = cart.cartItems.map((item) => {
@@ -154,6 +161,8 @@ exports.createOrderPaypal = async (req, res) => {
     };
 
     console.log(item_list);
+
+    console.log("paypal totalAmount", totalAmount);
 
     paypal.payment.create(create_payment_json, async (error, payment) => {
       try {
@@ -280,21 +289,49 @@ exports.addOrderRazorpay = async (req, res) => {
       }
 
       if (order.resellerCode !== "") {
-        const reseller = await Reseller.findOneAndUpdate(
-          {
-            resellerCode: order.resellerCode,
-          },
-          {
-            $push: {
-              orders: {
-                orderId: order._id,
-              },
+        // const reseller = await Reseller.findOneAndUpdate(
+        //   {
+        //     resellerCode: order.resellerCode,
+        //   },
+        //   {
+        //     $push: {
+        //       orders: {
+        //         orderId: order._id,
+        //         orderAmount: order.totalAmount - 50,
+        //       },
+        //     },
+        //     $inc: {
+        //       requestablePoints: 1,
+        //     },
+        //   }
+        // );
+
+        let reseller = await Reseller.findOne({
+          resellerCode: order.resellerCode,
+        });
+
+        // console.log(reseller);
+
+        if (reseller.orders != undefined) {
+          reseller.orders.push({
+            orderId: order._id,
+            orderAmount: order.totalAmount - 50,
+          });
+        } else {
+          reseller.orders = [
+            {
+              orderId: order._id,
+              orderAmount: order.totalAmount - 50,
             },
-            $inc: {
-              requestablePoints: 1,
-            },
-          }
+          ];
+        }
+
+        reseller.requestablePoints += 1;
+        reseller.requestableAmount += Math.round(
+          (order.totalAmount - 50) * reseller.percent
         );
+
+        await reseller.save();
       }
 
       const savedOrder = await order.save();
@@ -364,21 +401,47 @@ exports.addOrderPaypal = async (req, res) => {
             }
 
             if (order.resellerCode !== "") {
-              const reseller = await Reseller.findOneAndUpdate(
-                {
-                  resellerCode: order.resellerCode,
-                },
-                {
-                  $push: {
-                    orders: {
-                      orderId: order._id,
-                    },
+              // const reseller = await Reseller.findOneAndUpdate(
+              //   {
+              //     resellerCode: order.resellerCode,
+              //   },
+              //   {
+              //     $push: {
+              //       orders: {
+              //         orderId: order._id,
+              //         orderAmount: order.totalAmount - 50,
+              //       },
+              //     },
+              //     $inc: {
+              //       requestablePoints: 1,
+              //     },
+              //   }
+              // );
+
+              let reseller = await Reseller.findOne({
+                resellerCode: order.resellerCode,
+              });
+
+              if (reseller.orders != undefined) {
+                reseller.orders.push({
+                  orderId: order._id,
+                  orderAmount: order.totalAmount - 50,
+                });
+              } else {
+                reseller.orders = [
+                  {
+                    orderId: order._id,
+                    orderAmount: order.totalAmount - 50,
                   },
-                  $inc: {
-                    requestablePoints: 1,
-                  },
-                }
+                ];
+              }
+
+              reseller.requestablePoints += 1;
+              reseller.requestableAmount += Math.round(
+                (order.totalAmount - 50) * reseller.percent
               );
+
+              await reseller.save();
             }
 
             const savedOrder = await order.save();

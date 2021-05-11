@@ -1,7 +1,7 @@
 const Blog = require("../models/blog");
 
 exports.createBlog = async (req, res) => {
-  let { title, content } = req.body;
+  let { title, content, description } = req.body;
   let { _id } = req.user;
   let coverImg = req.file.path.split("\\").pop().split("/").pop();
 
@@ -19,6 +19,7 @@ exports.createBlog = async (req, res) => {
       content,
       createdBy: _id,
       coverImg,
+      description,
     }).save();
 
     res.json(newBlog);

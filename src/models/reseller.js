@@ -16,6 +16,9 @@ const requestSchema = Schema({
   points: {
     type: Number,
   },
+  amount: {
+    type: Number,
+  },
 });
 
 const resellerSchema = Schema({
@@ -42,14 +45,27 @@ const resellerSchema = Schema({
         type: Boolean,
         default: false,
       },
+      orderAmount: {
+        type: Number,
+      },
     },
   ],
+  percent: {
+    type: Number,
+    required: true,
+    default: 1,
+  },
   totalPoints: {
     type: Number,
     required: true,
     default: 0,
   },
   requestablePoints: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
+  requestableAmount: {
     type: Number,
     required: true,
     default: 0,
