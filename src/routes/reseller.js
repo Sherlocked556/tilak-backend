@@ -1,5 +1,10 @@
 const express = require("express");
 const {
+  adminMiddleware,
+  requireSignin,
+  resellerMiddleware,
+} = require("../common-middleware");
+const {
   createReseller,
   fetchReseller,
   fetchAllReseller,
@@ -14,15 +19,50 @@ const {
 
 const router = express.Router();
 
-router.post("/reseller", createReseller);
-router.patch("/reseller", updateReseller);
-router.get("/reseller", fetchAllReseller);
-router.delete("/reseller/:resellerId", deleteReseller);
-router.post("/reseller/request", createRequest);
-router.patch("/reseller/request", updateRequest);
-router.get("/reseller/request", fetchAllRequests);
-router.get("/reseller/:resellerId", fetchReseller);
-router.get("/reseller/request/:requestId", fetchRequests);
-router.get("/reseller/:resellerId/request", fetchResellerRequests);
+router.post("/reseller", requireSignin, adminMiddleware, createReseller);
+router.patch("/reseller", requireSignin, adminMiddleware, updateReseller);
+router.get("/reseller", requireSignin, adminMiddleware, fetchAllReseller);
+router.delete(
+  "/reseller/:resellerId",
+  requireSignin,
+  adminMiddleware,
+  deleteReseller
+);
+router.post(
+  "/reseller/request",
+  requireSignin,
+  resellerMiddleware,
+  createRequest
+);
+router.patch(
+  "/reseller/request",
+  requireSignin,
+  resellerMiddleware,
+  updateRequest
+);
+router.get(
+  "/reseller/request",
+  requireSignin,
+  resellerMiddleware,
+  fetchAllRequests
+);
+router.get(
+  "/reseller/:resellerId",
+  requireSignin,
+  resellerMiddleware,
+  fetchReseller
+);
+router.get(
+  "/reseller/request/:requestId",
+  requireSignin,
+  resellerMiddleware,
+  fetchRequests
+);
+router.get(
+  "/reseller/:resellerId/request",
+  requireSignin,
+  resellerMiddleware,
+  fetchResellerRequests
+);
 
 module.exports = router;

@@ -95,6 +95,18 @@ exports.userMiddleware = (req, res, next) => {
   next();
 };
 
+exports.resellerMiddleware = (req, res, next) => {
+  if (
+    req.user.role === "admin" ||
+    req.user.role === "super-admin" ||
+    req.user.role === "reseller"
+  ) {
+    return next();
+  }
+  return res.status(400).json({ msg: "User access denied" });
+  next();
+};
+
 exports.adminMiddleware = (req, res, next) => {
   if (req.user.role === "admin" || req.user.role === "super-admin") {
     return next();
